@@ -1,0 +1,131 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Game</title>
+</head>
+  <script src="pixi/pixi.min.js"></script>
+  <style>* {padding: 0; margin: 0}</style>
+<body>
+  <script type="text/javascript">
+let type = "WebGL"
+if(!PIXI.utils.isWebGLSupported()){
+  type = "canvas"
+}
+
+let Application = PIXI.Application,
+    loader = PIXI.loader,
+    resources = PIXI.loader.resources,
+    TextureCache = PIXI.utils.TextureCache
+    Sprite = PIXI.Sprite,
+    Container = PIXI.Container;
+
+let app = new Application({
+    width: 256,
+    height: 256,
+    antialias: true,
+    transparent: false,
+    resolution: 1
+  }
+);
+
+document.body.appendChild(app.view);
+app.renderer.view.style.position = "absolute";
+app.renderer.view.style.display = "block";
+app.renderer.autoResize = true;
+app.renderer.resize(window.innerWidth, window.innerHeight);
+
+loader
+  .add("Images/Clothing/Items.json")
+  .add("Images/Aimer.png")
+  .on("progress", loadProgressHandler)
+  .load(setup);
+
+function loadProgressHandler(loader, resource) {
+  console.log("loading: " + resource.url);
+  console.log("progress: " + loader.progress + "%");
+}
+
+let Width = app.renderer.view.width,
+    Height = app.renderer.view.height;
+let amountOfItems = 18,
+    item, state, Mousepos;
+function setup() {
+  console.log("All files loaded");
+  state = play;
+  app.ticker.add(delta => gameloop(delta));
+   id = resources["Images/Clothing/Items.json"].textures;
+   app.renderer.backgroundColor= 0x32a8a8;
+   cursor = new Sprite(resources["Images/Aimer.png"].texture);
+   cursor.scale.set(Width/amountOfItems/cursor.width,Width/amountOfItems/cursor.width);
+   app.stage.addChild(cursor);
+   for(let i = 0; i<amountOfItems; i++){
+     item = new Sprite(id["Clothing ("+i+").png"]);
+     item.scale.set(Width/amountOfItems/item.width,Width/amountOfItems/item.width);
+     app.stage.addChild(item);
+   }
+}//eternal sadness
+function gameloop(delta) {
+  state(delta);
+}
+function play(delta) {
+  cursor.position.set(app.renderer.plugins.interaction.mouse.global.x,app.renderer.plugins.interaction.mouse.global.y);
+  for(let i = 0; i<amountOfItems; i++){
+    item.x = Width/amountOfItems*i-Width/amountOfItems;
+    item.y = 0;
+  }
+
+}
+function randomInt(min, max) {
+  return Math.floor(Math.random() * (max - min + 1)) + min;
+}
+
+function keyboard(value) {
+  let key = {};
+  key.value = value;
+  key.isDown = false;
+  key.isUp = true;
+  key.press = undefined;
+  key.release = undefined;
+  //The `downHandler`
+  key.downHandler = event => {
+    if (event.key === key.value) {
+      if (key.isUp && key.press) key.press();
+      key.isDown = true;
+      key.isUp = false;
+      event.preventDefault();
+    }
+  };
+
+  //The `upHandler`
+  key.upHandler = event => {
+    if (event.key === key.value) {
+      if (key.isDown && key.release) key.release();
+      key.isDown = false;
+      key.isUp = true;
+      event.preventDefault();
+    }
+  };
+
+  //Attach event listeners
+  const downListener = key.downHandler.bind(key);
+  const upListener = key.upHandler.bind(key);
+
+  window.addEventListener(
+    "keydown", downListener, false
+  );
+  window.addEventListener(
+    "keyup", upListener, false
+  );
+
+  // Detach event listeners
+  key.unsubscribe = () => {
+    window.removeEventListener("keydown", downListener);
+    window.removeEventListener("keyup", upListener);
+  };
+
+  return key;
+}
+  </script>
+</body>
+</html>
