@@ -55,8 +55,8 @@ function setup() {
   for(let i = 0; i<amountOfItems; i++){
      item = new Sprite(id["Clothing ("+i+").png"]);
      item.scale.set(Width/amountOfItems/item.width,Width/amountOfItems/item.width);
+     items.push(item);
      app.stage.addChild(item);
-    items.push(item);
   }
   console.log("All files loaded");
   state = play;
