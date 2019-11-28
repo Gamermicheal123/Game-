@@ -73,7 +73,8 @@ function gameloop(delta) {
 function play(delta) {
   cursor.position.set(app.renderer.plugins.interaction.mouse.global.x,app.renderer.plugins.interaction.mouse.global.y);
   items.forEach(function(item) {
-  item.x += 1;
+    item.x += 1;
+  }
 }
 function randomInt(min, max) {
   return Math.floor(Math.random() * (max - min + 1)) + min;
