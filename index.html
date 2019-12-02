@@ -108,7 +108,7 @@ function onClick() {
     if(hitTestRectangle(cursor, item)) {
       if(score<5){score += .01;} else {score = 5/0;}
       respawn(item);
-      scoretxt.text = score;
+      scoretxt.text = score+"/5";
     }
   })
 }
