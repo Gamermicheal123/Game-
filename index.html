@@ -49,83 +49,166 @@ function loadProgressHandler(loader, resource) {
 let Width = app.renderer.view.width,
     Height = app.renderer.view.height;
 let amountOfItems = 18,
-    item, state, Mousepos;
+    item, state, Mousepos, cursor, scoretxt;
 items = [];
 function setup() {
+  scoretxt = new PIXI.Text("you have no points noob");
+  app.stage.addChild(scoretxt);
+  Mousepos = app.renderer.plugins.interaction.mouse.global;
+  id = resources["Images/Clothing/Items.json"].textures;
   for(let i = 0; i<amountOfItems; i++){
      item = new Sprite(id["Clothing ("+i+").png"]);
-     item.scale.set(Width/amountOfItems/item.width,Width/amountOfItems/item.width);
+     respawn(item);
      items.push(item);
      app.stage.addChild(item);
   }
+  cursor = new Sprite(resources["Images/Aimer.png"].texture);
+  cursor.scale.set(Width/10/cursor.width,Width/10/cursor.width);
+  cursor.anchor.set(0.5,0.5);
+  cursor.interactive = true;
+  cursor.on('pointerdown', onClick);
+  app.stage.addChild(cursor);
   console.log("All files loaded");
   state = play;
   app.ticker.add(delta => gameloop(delta));
-  id = resources["Images/Clothing/Items.json"].textures;
   app.renderer.backgroundColor= 0x32a8a8;
-  cursor = new Sprite(resources["Images/Aimer.png"].texture);
-  cursor.scale.set(Width/amountOfItems/cursor.width,Width/amountOfItems/cursor.width);
-  app.stage.addChild(cursor); 
 }
 function gameloop(delta) {
   state(delta);
 }
 function play(delta) {
-  cursor.position.set(app.renderer.plugins.interaction.mouse.global.x,app.renderer.plugins.interaction.mouse.global.y);
   items.forEach(function(item) {
-    item.x += 1;
+    item.x += item.vx;
+    item.y += item.vy;
+    let itemHitsWall = contain(item, {x: 0, y: 0, width: Width, height: Height});
+    if (itemHitsWall === "top" || itemHitsWall === "bottom") {
+      item.vy *= -1;
+    }
+    if (itemHitsWall === "left" || itemHitsWall === "right") {
+      item.vx *= -1;
+    }
+    if(score>5){
+      item.width=randomInt(0,500);
+      item.height=randomInt(0,500);
+      item.x=randomInt(-item.width,Width);
+      item.y=randomInt(-item.height,Height);
+    }
+  })
+  cursor.position.set(Mousepos.x,Mousepos.y);
+  if(score>5){
+    cursor.width=randomInt(0,500);
+    cursor.height=randomInt(0,500);
   }
 }
 function randomInt(min, max) {
   return Math.floor(Math.random() * (max - min + 1)) + min;
 }
-
-function keyboard(value) {
-  let key = {};
-  key.value = value;
-  key.isDown = false;
-  key.isUp = true;
-  key.press = undefined;
-  key.release = undefined;
-  //The `downHandler`
-  key.downHandler = event => {
-    if (event.key === key.value) {
-      if (key.isUp && key.press) key.press();
-      key.isDown = true;
-      key.isUp = false;
-      event.preventDefault();
+function onClick() {
+  items.forEach(function(item) {
+    if(hitTestRectangle(cursor, item)) {
+      if(score<5){score += .01;} else {score = 5/0;}
+      respawn(item);
+      scoretxt.text = score;
     }
-  };
-
-  //The `upHandler`
-  key.upHandler = event => {
-    if (event.key === key.value) {
-      if (key.isDown && key.release) key.release();
-      key.isDown = false;
-      key.isUp = true;
-      event.preventDefault();
-    }
-  };
-
-  //Attach event listeners
-  const downListener = key.downHandler.bind(key);
-  const upListener = key.upHandler.bind(key);
-
-  window.addEventListener(
-    "keydown", downListener, false
-  );
-  window.addEventListener(
-    "keyup", upListener, false
-  );
-
-  // Detach event listeners
-  key.unsubscribe = () => {
-    window.removeEventListener("keydown", downListener);
-    window.removeEventListener("keyup", upListener);
-  };
-
-  return key;
+  })
 }
+let scalefactor, score=0;
+function respawn(item){
+  if(score<5){
+  scalefactor = randomInt(5-score,20-score*2);
+  item.scale.set(scalefactor/100,scalefactor/100);
+  item.position.set(randomInt(0,Width),randomInt(0,Height));
+  item.vx = randomInt(-10-score*3,7+score*3);
+  if(item.vx==0){
+    item.vx = 1;
+  }
+  item.vy = randomInt(-10-score*3,7+score*3);
+  if(item.vy==0){
+    item.vy = 1;
+  }
+}
+}
+function contain(sprite, container) {
+
+  let collision = undefined;
+
+  //Left
+  if (sprite.x < container.x) {
+    sprite.x = container.x;
+    collision = "left";
+  }
+
+  //Top
+  if (sprite.y < container.y) {
+    sprite.y = container.y;
+    collision = "top";
+  }
+
+  //Right
+  if (sprite.x + sprite.width > container.width) {
+    sprite.x = container.width - sprite.width;
+    collision = "right";
+  }
+
+  //Bottom
+  if (sprite.y + sprite.height > container.height) {
+    sprite.y = container.height - sprite.height;
+    collision = "bottom";
+  }
+
+  //Return the `collision` value
+  return collision;
+}
+function hitTestRectangle(r1, r2) {
+
+  //Define the variables we'll need to calculate
+  let hit, combinedHalfWidths, combinedHalfHeights, vx, vy;
+
+  //hit will determine whether there's a collision
+  hit = false;
+
+  //Find the center points of each sprite
+  r1.centerX = r1.x + r1.width / 2;
+  r1.centerY = r1.y + r1.height / 2;
+  r2.centerX = r2.x + r2.width / 2;
+  r2.centerY = r2.y + r2.height / 2;
+
+  //Find the half-widths and half-heights of each sprite
+  r1.halfWidth = r1.width / 2;
+  r1.halfHeight = r1.height / 2;
+  r2.halfWidth = r2.width / 2;
+  r2.halfHeight = r2.height / 2;
+
+  //Calculate the distance vector between the sprites
+  vx = r1.centerX - r2.centerX;
+  vy = r1.centerY - r2.centerY;
+
+  //Figure out the combined half-widths and half-heights
+  combinedHalfWidths = r1.halfWidth + r2.halfWidth;
+  combinedHalfHeights = r1.halfHeight + r2.halfHeight;
+
+  //Check for a collision on the x axis
+  if (Math.abs(vx) < combinedHalfWidths) {
+
+    //A collision might be occurring. Check for a collision on the y axis
+    if (Math.abs(vy) < combinedHalfHeights) {
+
+      //There's definitely a collision happening
+      hit = true;
+    } else {
+
+      //There's no collision on the y axis
+      hit = false;
+    }
+  } else {
+
+    //There's no collision on the x axis
+    hit = false;
+  }
+
+  //`hit` will be either `true` or `false`
+  return hit;
+};
   </script>
 </body>
 </html>
